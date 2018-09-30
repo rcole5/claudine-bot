@@ -3,15 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/rcole5/claudine-bot"
 	"github.com/go-kit/kit/log"
+	"github.com/joho/godotenv"
+	"github.com/rcole5/claudine-bot"
+	"github.com/rcole5/claudine-bot/bot"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
 func main() {
+	// Load the settings
+	err := godotenv.Load();
+	if err != nil {
+		panic(err)
+	}
+
 	var (
 		httpAddr = flag.String("http.addr", ":8080", "HTTP listen address")
 	)
@@ -34,6 +43,8 @@ func main() {
 	{
 		h = claudine_bot.MakeHTTPHandler(s, log.With(logger, "component", "HTTP"))
 	}
+
+	go bot.New(s, os.Getenv("USERNAME"), os.Getenv("TOKEN"), strings.Split(os.Getenv("CHANNELS"), ","))
 
 	errs := make(chan error)
 	go func() {
