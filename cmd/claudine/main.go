@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/joho/godotenv"
@@ -18,10 +17,10 @@ func main() {
 	// Load the settings
 	godotenv.Load();
 
-	var (
-		httpAddr = flag.String("http.addr", os.Getenv("PORT"), "HTTP listen address")
-	)
-	flag.Parse()
+	//var (
+	//	httpAddr = flag.String("http.addr", os.Getenv("PORT"), "HTTP listen address")
+	//)
+	//flag.Parse()
 
 	var logger log.Logger
 	{
@@ -51,8 +50,8 @@ func main() {
 	}()
 
 	go func() {
-		logger.Log("transport", "HTTP", "addr", *httpAddr)
-		errs <- http.ListenAndServe(*httpAddr, h)
+		logger.Log("transport", "HTTP", "addr", ":" + os.Getenv("PORT"))
+		errs <- http.ListenAndServe(":" + os.Getenv("PORT"), h)
 	}()
 
 	logger.Log("exit", <-errs)
