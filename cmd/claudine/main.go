@@ -16,10 +16,7 @@ import (
 
 func main() {
 	// Load the settings
-	err := godotenv.Load();
-	if err != nil {
-		panic(err)
-	}
+	_ := godotenv.Load();
 
 	var (
 		httpAddr = flag.String("http.addr", ":8080", "HTTP listen address")
