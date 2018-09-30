@@ -27,25 +27,25 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		e.NewCommandEndpoint,
 		decodeNewCommandRequest,
 		encodeResponse,
-		options...
+		options...,
 	))
 	r.Methods("GET").Path("/commands/{trigger}").Handler(httptransport.NewServer(
 		e.GetCommandEndpoint,
 		decodeGetCommandRequest,
 		encodeResponse,
-		options...
+		options...,
 	))
 	r.Methods("GET").Path("/commands/").Handler(httptransport.NewServer(
 		e.ListCommandEndpoint,
 		decodeListCommandRequest,
 		encodeResponse,
-		options...
+		options...,
 	))
 	r.Methods("PUT").Path("/commands/{trigger}").Handler(httptransport.NewServer(
 		e.UpdateCommandEndpoint,
 		decodeUpdateCommandRequest,
 		encodeResponse,
-		options...
+		options...,
 	))
 	return r
 }
@@ -61,7 +61,7 @@ func decodeNewCommandRequest(_ context.Context, r *http.Request) (request interf
 func decodeGetCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	vars := mux.Vars(r)
 	trigger, ok := vars["trigger"]
-	if ! ok {
+	if !ok {
 		return nil, ErrBadRouting
 	}
 	return getCommandRequest{Trigger: trigger}, nil
@@ -74,7 +74,7 @@ func decodeListCommandRequest(_ context.Context, _ *http.Request) (request inter
 func decodeUpdateCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	vars := mux.Vars(r)
 	trigger, ok := vars["trigger"]
-	if ! ok {
+	if !ok {
 		return nil, ErrBadRouting
 	}
 

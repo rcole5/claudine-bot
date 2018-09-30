@@ -23,7 +23,7 @@ type Command struct {
 
 var (
 	ErrAlreadyExist = errors.New("already exists")
-	ErrNotFound      = errors.New("not found")
+	ErrNotFound     = errors.New("not found")
 	//ErrGeneric       = errors.New("generic server error")
 )
 
@@ -36,7 +36,7 @@ type claudineService struct {
 
 func NewClaudineService() Service {
 	return &claudineService{
-		commands: make(map[string]Command),
+		commands:     make(map[string]Command),
 		commandExist: make(map[string]struct{}),
 	}
 }
@@ -83,7 +83,7 @@ func (s *claudineService) UpdateCommand(ctx context.Context, trigger string, act
 	}
 	s.commands[trigger] = Command{
 		Trigger: trigger,
-		Action: action,
+		Action:  action,
 	}
 
 	return s.commands[trigger], nil
