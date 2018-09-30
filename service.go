@@ -3,7 +3,6 @@ package claudine_bot
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"sync"
 )
@@ -13,7 +12,7 @@ type Service interface {
 	NewCommand(ctx context.Context, c Command) (Command, error)
 	GetCommand(ctx context.Context, trigger string) (Command, error)
 	ListCommand(ctx context.Context) ([]Command, error)
-	//UpdateCommand(ctx context.Context, trigger string) (Command, error)
+	UpdateCommand(ctx context.Context, trigger string, action string) (Command, error)
 	//DeleteCommand(ctx context.Context, trigger string) error
 }
 
@@ -57,7 +56,6 @@ func (s *claudineService) GetCommand(ctx context.Context, trigger string) (Comma
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	c, ok := s.commands[trigger]
-	fmt.Println(s.commands)
 	if !ok {
 		return Command{}, ErrNotFound
 	}
@@ -74,6 +72,21 @@ func (s *claudineService) ListCommand(ctx context.Context) ([]Command, error) {
 	return list, nil
 }
 
-//func (s *claudineService) UpdateCommand(ctx context.Context, trigger string) (Command, error) {}
-//
+func (s *claudineService) UpdateCommand(ctx context.Context, trigger string, action string) (Command, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	_, ok := s.commands[trigger]
+	if !ok {
+		return Command{}, ErrNotFound
+
+	}
+	s.commands[trigger] = Command{
+		Trigger: trigger,
+		Action: action,
+	}
+
+	return s.commands[trigger], nil
+}
+
 //func (s *claudineService) DeleteCommand(ctx context.Context, trigger string) error {}

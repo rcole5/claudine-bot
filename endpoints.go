@@ -15,9 +15,10 @@ type Endpoints struct {
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
-		NewCommandEndpoint:  MakeNewCommandEndpoint(s),
-		GetCommandEndpoint:  MakeGetCommandEndpoint(s),
-		ListCommandEndpoint: MakeListCommandEndpoint(s),
+		NewCommandEndpoint:    MakeNewCommandEndpoint(s),
+		GetCommandEndpoint:    MakeGetCommandEndpoint(s),
+		ListCommandEndpoint:   MakeListCommandEndpoint(s),
+		UpdateCommandEndpoint: MakeUpdateCommandEndpoint(s),
 	}
 }
 
@@ -51,6 +52,16 @@ func (e Endpoints) ListCommand(ctx context.Context) ([]Command, error) {
 	return resp.Commands, resp.Error
 }
 
+func (e Endpoints) UpdateCommand(ctx context.Context, c Command) (Command, error) {
+	request := updateCommandRequest{Trigger: c.Trigger, Action: c.Action}
+	response, err := e.UpdateCommandEndpoint(ctx, request)
+	if err != nil {
+		return Command{}, err
+	}
+	resp := response.(updateCommandResponse)
+	return resp.Command, resp.Error
+}
+
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
@@ -71,6 +82,14 @@ func MakeListCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		c, e := s.ListCommand(ctx)
 		return listCommandResponse{Commands: c, Error: e}, nil
+	}
+}
+
+func MakeUpdateCommandEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(updateCommandRequest)
+		c, e := s.UpdateCommand(ctx, req.Trigger, req.Action)
+		return updateCommandResponse{Command: c, Error: e}, nil
 	}
 }
 
@@ -96,11 +115,21 @@ type getCommandResponse struct {
 	Error   error   `json:"error"`
 }
 
-type listCommandRequest struct {}
+type listCommandRequest struct{}
 
 type listCommandResponse struct {
 	Commands []Command `json:"commands"`
 	Error    error     `json:"error"`
+}
+
+type updateCommandRequest struct {
+	Trigger string `json:"trigger"`
+	Action  string `json:"action"`
+}
+
+type updateCommandResponse struct {
+	Command Command `json:"command"`
+	Error   error   `json:"error"`
 }
 
 func (r getCommandResponse) error() error { return r.Error }
