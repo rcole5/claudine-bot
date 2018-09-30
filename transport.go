@@ -17,7 +17,7 @@ var (
 )
 
 func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
-	r := mux.NewRouter()
+	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
 	e := MakeServerEndpoints(s)
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorLogger(logger),
