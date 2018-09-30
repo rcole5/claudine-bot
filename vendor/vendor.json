@@ -1,0 +1,64 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "6IOr+oZmMLyLnyIqCWcEE8E1CdA=",
+			"path": "github.com/gempir/go-twitch-irc",
+			"revision": "4d6cd828482ee46468feb78a057ad1396ad9d813",
+			"revisionTime": "2018-09-24T20:18:31Z"
+		},
+		{
+			"checksumSHA1": "oqtNI+0KmQ+eZgH5FArkETtOoHE=",
+			"path": "github.com/go-kit/kit/endpoint",
+			"revision": "9890679578cab201bd981519c97365519193d1ce",
+			"revisionTime": "2018-09-18T18:00:39Z"
+		},
+		{
+			"checksumSHA1": "bp1ClkjUs5pY6vpPF3ktUEFvII0=",
+			"path": "github.com/go-kit/kit/log",
+			"revision": "9890679578cab201bd981519c97365519193d1ce",
+			"revisionTime": "2018-09-18T18:00:39Z"
+		},
+		{
+			"checksumSHA1": "J8lSJ9VrQAiHclu9hvM4BzFb7KE=",
+			"path": "github.com/go-kit/kit/transport/http",
+			"revision": "9890679578cab201bd981519c97365519193d1ce",
+			"revisionTime": "2018-09-18T18:00:39Z"
+		},
+		{
+			"checksumSHA1": "KxX/Drph+byPXBFIXaCZaCOAnrU=",
+			"path": "github.com/go-logfmt/logfmt",
+			"revision": "390ab7935ee28ec6b286364bba9b4dd6410cb3d5",
+			"revisionTime": "2016-11-15T14:25:13Z"
+		},
+		{
+			"checksumSHA1": "Ld1fkCBbtUqRg3qu1gZKpP2OyO4=",
+			"path": "github.com/gorilla/mux",
+			"revision": "9e1f5955c0d22b55d9e20d6faa28589f83b2faca",
+			"revisionTime": "2018-09-03T15:43:05Z"
+		},
+		{
+			"checksumSHA1": "saZ4MPgLuld/osSp8/tzrDYIXrY=",
+			"path": "github.com/jinzhu/gorm",
+			"revision": "f6260a00852946a10a57e8bb9f505f19bc9389b7",
+			"revisionTime": "2018-09-22T11:59:11Z"
+		},
+		{
+			"checksumSHA1": "4eelJOSLZoDzLuaJvgilOBVNovU=",
+			"path": "github.com/jinzhu/inflection",
+			"revision": "04140366298a54a039076d798123ffa108fff46c",
+			"revisionTime": "2018-03-08T03:36:59Z"
+		},
+		{
+			"checksumSHA1": "I+g5iffd0bNDiI8swxzsHiJxBz0=",
+			"path": "github.com/joho/godotenv",
+			"revision": "c0b86d615e06d6fa5f869364d68f774ba49a86e3",
+			"revisionTime": "2018-09-27T05:32:03Z"
+		}
+	],
+	"rootPath": "github.com/rcole5/claudine-bot",
+	"heroku": {
+		"install": ["./cmd/claudine"]
+	}
+}
