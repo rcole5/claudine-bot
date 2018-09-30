@@ -19,7 +19,7 @@ func main() {
 	godotenv.Load();
 
 	var (
-		httpAddr = flag.String("http.addr", ":8080", "HTTP listen address")
+		httpAddr = flag.String("http.addr", os.Getenv("PORT"), "HTTP listen address")
 	)
 	flag.Parse()
 
