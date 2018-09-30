@@ -19,6 +19,7 @@ func MakeServerEndpoints(s Service) Endpoints {
 		GetCommandEndpoint:    MakeGetCommandEndpoint(s),
 		ListCommandEndpoint:   MakeListCommandEndpoint(s),
 		UpdateCommandEndpoint: MakeUpdateCommandEndpoint(s),
+		DeleteCommandEndpoint: MakeDeleteCommandEndpoint(s),
 	}
 }
 
@@ -62,6 +63,16 @@ func (e Endpoints) UpdateCommand(ctx context.Context, c Command) (Command, error
 	return resp.Command, resp.Error
 }
 
+func (e Endpoints) DeleteCommand(ctx context.Context, trigger string) error {
+	request := updateCommandRequest{Trigger: trigger}
+	response, err := e.DeleteCommandEndpoint(ctx, request)
+	if err != nil {
+		return err
+	}
+	resp := response.(deleteCommandResponse)
+	return resp.Error
+}
+
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
@@ -90,6 +101,14 @@ func MakeUpdateCommandEndpoint(s Service) endpoint.Endpoint {
 		req := request.(updateCommandRequest)
 		c, e := s.UpdateCommand(ctx, req.Trigger, req.Action)
 		return updateCommandResponse{Command: c, Error: e}, nil
+	}
+}
+
+func MakeDeleteCommandEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(deleteCommandRequest)
+		e := s.DeleteCommand(ctx, req.Trigger)
+		return deleteCommandResponse{Error: e}, nil
 	}
 }
 
@@ -130,6 +149,14 @@ type updateCommandRequest struct {
 type updateCommandResponse struct {
 	Command Command `json:"command"`
 	Error   error   `json:"error"`
+}
+
+type deleteCommandRequest struct {
+	Trigger string `json:"trigger"`
+}
+
+type deleteCommandResponse struct {
+	Error error `json:"error"`
 }
 
 func (r getCommandResponse) error() error { return r.Error }

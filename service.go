@@ -13,7 +13,7 @@ type Service interface {
 	GetCommand(ctx context.Context, trigger string) (Command, error)
 	ListCommand(ctx context.Context) ([]Command, error)
 	UpdateCommand(ctx context.Context, trigger string, action string) (Command, error)
-	//DeleteCommand(ctx context.Context, trigger string) error
+	DeleteCommand(ctx context.Context, trigger string) error
 }
 
 type Command struct {
@@ -89,4 +89,15 @@ func (s *claudineService) UpdateCommand(ctx context.Context, trigger string, act
 	return s.commands[trigger], nil
 }
 
-//func (s *claudineService) DeleteCommand(ctx context.Context, trigger string) error {}
+func (s *claudineService) DeleteCommand(ctx context.Context, trigger string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	_, ok := s.commands[trigger]
+	if !ok {
+		return ErrNotFound
+	}
+	delete(s.commands, trigger)
+	delete(s.commandExist, trigger)
+	return nil
+}

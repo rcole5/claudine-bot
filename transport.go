@@ -47,6 +47,12 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		encodeResponse,
 		options...,
 	))
+	r.Methods("DELETE").Path("/commands/{trigger}").Handler(httptransport.NewServer(
+		e.DeleteCommandEndpoint,
+		decodeDeleteCommandEndpoint,
+		encodeResponse,
+		options...,
+	))
 	return r
 }
 
@@ -85,6 +91,15 @@ func decodeUpdateCommandRequest(_ context.Context, r *http.Request) (request int
 	req.Trigger = trigger
 
 	return req, nil
+}
+
+func decodeDeleteCommandEndpoint(_ context.Context, r *http.Request) (request interface{}, err error) {
+	vars := mux.Vars(r)
+	trigger, ok := vars["trigger"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	return deleteCommandRequest{Trigger: trigger}, nil
 }
 
 func encodeNewCommandRequest(ctx context.Context, req *http.Request, request interface{}) error {
