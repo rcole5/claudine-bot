@@ -35,7 +35,7 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		encodeResponse,
 		options...,
 	))
-	r.Methods("GET").Path("/commands/").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/commands").Handler(httptransport.NewServer(
 		e.ListCommandEndpoint,
 		decodeListCommandRequest,
 		encodeResponse,
