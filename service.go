@@ -12,7 +12,7 @@ type Service interface {
 	// Command functions
 	NewCommand(ctx context.Context, c Command) (Command, error)
 	GetCommand(ctx context.Context, trigger string) (Command, error)
-	//ListCommand(ctx context.Context) ([]Command, error)
+	ListCommand(ctx context.Context) ([]Command, error)
 	//UpdateCommand(ctx context.Context, trigger string) (Command, error)
 	//DeleteCommand(ctx context.Context, trigger string) error
 }
@@ -64,8 +64,16 @@ func (s *claudineService) GetCommand(ctx context.Context, trigger string) (Comma
 	return c, nil
 }
 
-//func (s *claudineService) ListCommand(ctx context.Context) ([]Command, error) {}
-//
+func (s *claudineService) ListCommand(ctx context.Context) ([]Command, error) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+	var list []Command
+	for _, command := range s.commands {
+		list = append(list, command)
+	}
+	return list, nil
+}
+
 //func (s *claudineService) UpdateCommand(ctx context.Context, trigger string) (Command, error) {}
 //
 //func (s *claudineService) DeleteCommand(ctx context.Context, trigger string) error {}

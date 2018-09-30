@@ -15,8 +15,9 @@ type Endpoints struct {
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
-		NewCommandEndpoint: MakeNewCommandEndpoint(s),
-		GetCommandEndpoint: MakeGetCommandEndpoint(s),
+		NewCommandEndpoint:  MakeNewCommandEndpoint(s),
+		GetCommandEndpoint:  MakeGetCommandEndpoint(s),
+		ListCommandEndpoint: MakeListCommandEndpoint(s),
 	}
 }
 
@@ -40,6 +41,16 @@ func (e Endpoints) GetCommand(ctx context.Context, t string) (Command, error) {
 	return resp.Command, resp.Error
 }
 
+func (e Endpoints) ListCommand(ctx context.Context) ([]Command, error) {
+	request := listCommandRequest{}
+	response, err := e.ListCommandEndpoint(ctx, request)
+	if err != nil {
+		return []Command{}, err
+	}
+	resp := response.(listCommandResponse)
+	return resp.Commands, resp.Error
+}
+
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
@@ -56,6 +67,13 @@ func MakeGetCommandEndpoint(s Service) endpoint.Endpoint {
 	}
 }
 
+func MakeListCommandEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		c, e := s.ListCommand(ctx)
+		return listCommandResponse{Commands: c, Error: e}, nil
+	}
+}
+
 // New Command
 type newCommandRequest struct {
 	Command Command
@@ -63,7 +81,7 @@ type newCommandRequest struct {
 
 type newCommandResponse struct {
 	Command Command `json:"command"`
-	Error error `json:"error"`
+	Error   error   `json:"error"`
 }
 
 func (r newCommandResponse) error() error { return r.Error }
@@ -75,7 +93,14 @@ type getCommandRequest struct {
 
 type getCommandResponse struct {
 	Command Command `json:"command"`
-	Error error `json:"error"`
+	Error   error   `json:"error"`
+}
+
+type listCommandRequest struct {}
+
+type listCommandResponse struct {
+	Commands []Command `json:"commands"`
+	Error    error     `json:"error"`
 }
 
 func (r getCommandResponse) error() error { return r.Error }

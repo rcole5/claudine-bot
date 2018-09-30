@@ -35,6 +35,12 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		encodeResponse,
 		options...
 	))
+	r.Methods("GET").Path("/commands/").Handler(httptransport.NewServer(
+		e.ListCommandEndpoint,
+		decodeListCommandRequest,
+		encodeResponse,
+		options...
+	))
 	return r
 }
 
@@ -53,6 +59,10 @@ func decodeGetCommandRequest(_ context.Context, r *http.Request) (request interf
 		return nil, ErrBadRouting
 	}
 	return getCommandRequest{Trigger: trigger}, nil
+}
+
+func decodeListCommandRequest(_ context.Context, _ *http.Request) (request interface{}, err error) {
+	return listCommandRequest{}, nil
 }
 
 func encodeNewCommandRequest(ctx context.Context, req *http.Request, request interface{}) error {
