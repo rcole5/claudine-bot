@@ -50,7 +50,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 				Client.Say(channel, "Not enough args. Syntax is !add command response.")
 				return
 			}
-			_, err := service.NewCommand(context.Background(), claudine_bot.Command{
+			_, err := service.NewCommand(context.Background(), channel, claudine_bot.Command{
 				Trigger: msg[1],
 				Action: strings.Join(msg[2:], " "),
 			})
@@ -65,7 +65,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 				Client.Say(channel, "Not enough args. Syntax is !remove command.")
 				return
 			}
-			err := service.DeleteCommand(context.Background(), msg[1])
+			err := service.DeleteCommand(context.Background(), channel, msg[1])
 			if err != nil {
 				Client.Say(channel, "This commands doesn't exist, baka.")
 				return
@@ -74,7 +74,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 			return
 		}
 	}
-	command, err := service.GetCommand(context.Background(), msg[0][1:])
+	command, err := service.GetCommand(context.Background(), channel, msg[0][1:])
 	if err != nil {
 		// Command doesn't exist. Should prob add an error code here in case it's a different error.
 	}

@@ -76,7 +76,7 @@ func (e Endpoints) DeleteCommand(ctx context.Context, trigger string) error {
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
-		c, e := s.NewCommand(ctx, req.Command)
+		c, e := s.NewCommand(ctx, req.Channel, req.Command)
 		return newCommandResponse{Command: c, Error: e}, nil
 	}
 }
@@ -84,14 +84,15 @@ func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 func MakeGetCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(getCommandRequest)
-		c, e := s.GetCommand(ctx, req.Trigger)
+		c, e := s.GetCommand(ctx, req.Channel, req.Trigger)
 		return getCommandResponse{Command: c, Error: e}, nil
 	}
 }
 
 func MakeListCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		c, e := s.ListCommand(ctx)
+		req := request.(listCommandRequest)
+		c, e := s.ListCommand(ctx, req.Channel)
 		return listCommandResponse{Commands: c, Error: e}, nil
 	}
 }
@@ -99,7 +100,7 @@ func MakeListCommandEndpoint(s Service) endpoint.Endpoint {
 func MakeUpdateCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(updateCommandRequest)
-		c, e := s.UpdateCommand(ctx, req.Trigger, req.Action)
+		c, e := s.UpdateCommand(ctx, req.Channel, req.Trigger, req.Action)
 		return updateCommandResponse{Command: c, Error: e}, nil
 	}
 }
@@ -107,7 +108,7 @@ func MakeUpdateCommandEndpoint(s Service) endpoint.Endpoint {
 func MakeDeleteCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(deleteCommandRequest)
-		e := s.DeleteCommand(ctx, req.Trigger)
+		e := s.DeleteCommand(ctx, req.Channel, req.Trigger)
 		return deleteCommandResponse{Error: e}, nil
 	}
 }
@@ -115,6 +116,7 @@ func MakeDeleteCommandEndpoint(s Service) endpoint.Endpoint {
 // New Command
 type newCommandRequest struct {
 	Command Command
+	Channel string
 }
 
 type newCommandResponse struct {
@@ -127,6 +129,7 @@ func (r newCommandResponse) error() error { return r.Error }
 // Get Command
 type getCommandRequest struct {
 	Trigger string
+	Channel string
 }
 
 type getCommandResponse struct {
@@ -134,7 +137,9 @@ type getCommandResponse struct {
 	Error   error   `json:"error"`
 }
 
-type listCommandRequest struct{}
+type listCommandRequest struct {
+	Channel string
+}
 
 type listCommandResponse struct {
 	Commands []Command `json:"commands"`
@@ -144,6 +149,7 @@ type listCommandResponse struct {
 type updateCommandRequest struct {
 	Trigger string `json:"trigger"`
 	Action  string `json:"action"`
+	Channel string `json:"channel"`
 }
 
 type updateCommandResponse struct {
@@ -153,6 +159,7 @@ type updateCommandResponse struct {
 
 type deleteCommandRequest struct {
 	Trigger string `json:"trigger"`
+	Channel string `json:"channel"`
 }
 
 type deleteCommandResponse struct {

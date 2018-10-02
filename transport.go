@@ -17,37 +17,37 @@ var (
 )
 
 func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
-	r := mux.NewRouter().StrictSlash(true).PathPrefix("/api/v1").Subrouter()
+	r := mux.NewRouter().StrictSlash(false).PathPrefix("/api/v1").Subrouter()
 	e := MakeServerEndpoints(s)
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorLogger(logger),
 		httptransport.ServerErrorEncoder(encodeError),
 	}
-	r.Methods("POST").Path("/commands").Handler(httptransport.NewServer(
+	r.Methods("POST").Path("/{channel}/commands").Handler(httptransport.NewServer(
 		e.NewCommandEndpoint,
 		decodeNewCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("GET").Path("/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.GetCommandEndpoint,
 		decodeGetCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("GET").Path("/commands").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/{channel}/commands").Handler(httptransport.NewServer(
 		e.ListCommandEndpoint,
 		decodeListCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("PUT").Path("/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("PUT").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.UpdateCommandEndpoint,
 		decodeUpdateCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("DELETE").Path("/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("DELETE").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.DeleteCommandEndpoint,
 		decodeDeleteCommandEndpoint,
 		encodeResponse,
@@ -61,6 +61,12 @@ func decodeNewCommandRequest(_ context.Context, r *http.Request) (request interf
 	if e := json.NewDecoder(r.Body).Decode(&req.Command); e != nil {
 		return nil, e
 	}
+
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	req.Channel = channel
 	return req, nil
 }
 
@@ -70,11 +76,22 @@ func decodeGetCommandRequest(_ context.Context, r *http.Request) (request interf
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return getCommandRequest{Trigger: trigger}, nil
+
+	channel, ok := vars["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	return getCommandRequest{Channel: channel, Trigger: trigger}, nil
 }
 
-func decodeListCommandRequest(_ context.Context, _ *http.Request) (request interface{}, err error) {
-	return listCommandRequest{}, nil
+func decodeListCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	vars := mux.Vars(r)
+	channel, ok := vars["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	return listCommandRequest{Channel: channel}, nil
 }
 
 func decodeUpdateCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
@@ -84,11 +101,17 @@ func decodeUpdateCommandRequest(_ context.Context, r *http.Request) (request int
 		return nil, ErrBadRouting
 	}
 
+	channel, ok := vars["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
 	var req updateCommandRequest
 	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 		return nil, e
 	}
 	req.Trigger = trigger
+	req.Channel = channel
 
 	return req, nil
 }
@@ -96,10 +119,11 @@ func decodeUpdateCommandRequest(_ context.Context, r *http.Request) (request int
 func decodeDeleteCommandEndpoint(_ context.Context, r *http.Request) (request interface{}, err error) {
 	vars := mux.Vars(r)
 	trigger, ok := vars["trigger"]
+	channel, ok := vars["channel"]
 	if !ok {
 		return nil, ErrBadRouting
 	}
-	return deleteCommandRequest{Trigger: trigger}, nil
+	return deleteCommandRequest{Channel: channel, Trigger: trigger}, nil
 }
 
 func encodeNewCommandRequest(ctx context.Context, req *http.Request, request interface{}) error {

@@ -4,16 +4,17 @@ import (
 	"context"
 	"errors"
 	"github.com/jinzhu/gorm"
+	"github.com/rcole5/claudine-bot/models"
 	"sync"
 )
 
 type Service interface {
 	// Command functions
-	NewCommand(ctx context.Context, c Command) (Command, error)
-	GetCommand(ctx context.Context, trigger string) (Command, error)
-	ListCommand(ctx context.Context) ([]Command, error)
-	UpdateCommand(ctx context.Context, trigger string, action string) (Command, error)
-	DeleteCommand(ctx context.Context, trigger string) error
+	NewCommand(ctx context.Context, channel string, c Command) (Command, error)
+	GetCommand(ctx context.Context, channel string, trigger string) (Command, error)
+	ListCommand(ctx context.Context, channel string) ([]Command, error)
+	UpdateCommand(ctx context.Context, channel string, trigger string, action string) (Command, error)
+	DeleteCommand(ctx context.Context, channel string, trigger string) error
 }
 
 type Command struct {
@@ -29,75 +30,93 @@ var (
 
 type claudineService struct {
 	mtx          sync.RWMutex
-	commands     map[string]Command
-	commandExist map[string]struct{}
+	commands     map[string]map[string]Command
+	commandExist map[string]map[string]struct{}
 	db           *gorm.DB
 }
 
-func NewClaudineService() Service {
+func NewClaudineService(db *gorm.DB) Service {
 	return &claudineService{
-		commands:     make(map[string]Command),
-		commandExist: make(map[string]struct{}),
+		commands:     make(map[string]map[string]Command),
+		commandExist: make(map[string]map[string]struct{}),
+		db:           db,
 	}
 }
 
-func (s *claudineService) NewCommand(ctx context.Context, c Command) (Command, error) {
+func (s *claudineService) NewCommand(ctx context.Context, channel string, c Command) (Command, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if _, ok := s.commandExist[c.Action]; ok {
+	if _, ok := s.commands[channel][c.Trigger]; ok {
 		return Command{}, ErrAlreadyExist
 	}
-	s.commands[c.Trigger] = c
-	s.commandExist[c.Trigger] = struct{}{}
+
+	if s.commands[channel] == nil {
+		s.commands[channel] = make(map[string]Command)
+		s.commandExist[channel] = make(map[string]struct{})
+	}
+
+	go func() {
+		var existing models.Command
+		if s.db.Where("Channel = ? AND Trigger = ?", channel, c.Trigger).Find(&existing).RowsAffected == 0 {
+			s.db.Create(&models.Command{
+				Trigger: c.Trigger,
+				Action:  c.Action,
+				Channel: channel,
+			})
+		}
+	}()
+
+	s.commands[channel][c.Trigger] = c
+	s.commandExist[channel][c.Trigger] = struct{}{}
 	return c, nil
 }
 
-func (s *claudineService) GetCommand(ctx context.Context, trigger string) (Command, error) {
+func (s *claudineService) GetCommand(ctx context.Context, channel string, trigger string) (Command, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	c, ok := s.commands[trigger]
+	c, ok := s.commands[channel][trigger]
 	if !ok {
 		return Command{}, ErrNotFound
 	}
 	return c, nil
 }
 
-func (s *claudineService) ListCommand(ctx context.Context) ([]Command, error) {
+func (s *claudineService) ListCommand(ctx context.Context, channel string) ([]Command, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	var list []Command
-	for _, command := range s.commands {
+	for _, command := range s.commands[channel] {
 		list = append(list, command)
 	}
 	return list, nil
 }
 
-func (s *claudineService) UpdateCommand(ctx context.Context, trigger string, action string) (Command, error) {
+func (s *claudineService) UpdateCommand(ctx context.Context, channel string, trigger string, action string) (Command, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	_, ok := s.commands[trigger]
+	_, ok := s.commands[channel][trigger]
 	if !ok {
 		return Command{}, ErrNotFound
 
 	}
-	s.commands[trigger] = Command{
+	s.commands[channel][trigger] = Command{
 		Trigger: trigger,
 		Action:  action,
 	}
 
-	return s.commands[trigger], nil
+	return s.commands[channel][trigger], nil
 }
 
-func (s *claudineService) DeleteCommand(ctx context.Context, trigger string) error {
+func (s *claudineService) DeleteCommand(ctx context.Context, channel string, trigger string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	_, ok := s.commands[trigger]
+	_, ok := s.commands[channel][trigger]
 	if !ok {
 		return ErrNotFound
 	}
-	delete(s.commands, trigger)
-	delete(s.commandExist, trigger)
+	delete(s.commands[channel], trigger)
+	delete(s.commandExist[channel], trigger)
 	return nil
 }

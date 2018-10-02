@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-kit/kit/log"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/rcole5/claudine-bot"
 	"github.com/rcole5/claudine-bot/bot"
+	"github.com/rcole5/claudine-bot/models"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,12 +19,7 @@ import (
 
 func main() {
 	// Load the settings
-	godotenv.Load();
-
-	//var (
-	//	httpAddr = flag.String("http.addr", os.Getenv("PORT"), "HTTP listen address")
-	//)
-	//flag.Parse()
+	godotenv.Load()
 
 	var logger log.Logger
 	{
@@ -29,10 +28,26 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
+	db, err := gorm.Open("sqlite3", "commands.db")
+	if err != nil {
+		panic(err)
+	}
+
+	// Migrate the db
+	db.AutoMigrate(&models.Command{})
+
 	var s claudine_bot.Service
 	{
-		// TODO: Pass in db connection
-		s = claudine_bot.NewClaudineService()
+		s = claudine_bot.NewClaudineService(db)
+	}
+
+	var commands []*models.Command
+	db.Find(&commands)
+	for _, comm := range commands {
+		s.NewCommand(context.Background(), comm.Channel, claudine_bot.Command{
+			Trigger: comm.Trigger,
+			Action: comm.Action,
+		})
 	}
 
 	var h http.Handler
@@ -50,8 +65,8 @@ func main() {
 	}()
 
 	go func() {
-		logger.Log("transport", "HTTP", "addr", ":" + os.Getenv("PORT"))
-		errs <- http.ListenAndServe(":" + os.Getenv("PORT"), h)
+		logger.Log("transport", "HTTP", "addr", ":"+os.Getenv("PORT"))
+		errs <- http.ListenAndServe(":"+os.Getenv("PORT"), h)
 	}()
 
 	logger.Log("exit", <-errs)
