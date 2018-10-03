@@ -1,5 +1,10 @@
 {
 	"comment": "",
+	"heroku": {
+		"install": [
+			"./cmd/claudine"
+		]
+	},
 	"ignore": "test",
 	"package": [
 		{
@@ -45,6 +50,12 @@
 			"revisionTime": "2018-09-22T11:59:11Z"
 		},
 		{
+			"checksumSHA1": "4VZ1gLZHMumRjV3fclS1aX8S1aQ=",
+			"path": "github.com/jinzhu/gorm/dialects/sqlite",
+			"revision": "f6260a00852946a10a57e8bb9f505f19bc9389b7",
+			"revisionTime": "2018-09-22T11:59:11Z"
+		},
+		{
 			"checksumSHA1": "4eelJOSLZoDzLuaJvgilOBVNovU=",
 			"path": "github.com/jinzhu/inflection",
 			"revision": "04140366298a54a039076d798123ffa108fff46c",
@@ -55,10 +66,13 @@
 			"path": "github.com/joho/godotenv",
 			"revision": "c0b86d615e06d6fa5f869364d68f774ba49a86e3",
 			"revisionTime": "2018-09-27T05:32:03Z"
+		},
+		{
+			"checksumSHA1": "FDMDonjRj1H49UMKS0ubmDA1bz4=",
+			"path": "github.com/mattn/go-sqlite3",
+			"revision": "0a88db3545c4089ce0f555f496bfc78c491699e5",
+			"revisionTime": "2018-09-26T09:02:20Z"
 		}
 	],
-	"rootPath": "github.com/rcole5/claudine-bot",
-	"heroku": {
-		"install": ["./cmd/claudine"]
-	}
+	"rootPath": "github.com/rcole5/claudine-bot"
 }
