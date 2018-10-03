@@ -48,7 +48,7 @@ func New(s claudine_bot.Service, user string, token string, db *gorm.DB) {
 					db.Find(&commands)
 					for _, comm := range commands {
 						fmt.Println(comm.Channel)
-						if comm.Channel != string(channel) {
+						if strings.ToLower(comm.Channel) != strings.ToLower(string(channel)) {
 							continue
 						}
 						fmt.Println("Added command", comm.Trigger)
