@@ -29,7 +29,7 @@ func New(s claudine_bot.Service, user string, token string, db *gorm.DB) {
 	Client.OnNewMessage(handleMessage)
 
 	// TODO: Everything about this is bad. Change it ASAP.
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		currentChannels := make(map[string]struct{})
 		for range ticker.C {
