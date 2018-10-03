@@ -5,9 +5,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/gempir/go-twitch-irc"
+	"github.com/jinzhu/gorm"
 	"github.com/rcole5/claudine-bot"
+	"github.com/rcole5/claudine-bot/models"
 	"strings"
 	"text/template"
+	"time"
 )
 
 var (
@@ -15,7 +18,7 @@ var (
 	service claudine_bot.Service
 )
 
-func New(s claudine_bot.Service, user string, token string, channels []string) {
+func New(s claudine_bot.Service, user string, token string, db *gorm.DB) {
 	// Init the service
 	service = s
 
@@ -25,10 +28,45 @@ func New(s claudine_bot.Service, user string, token string, channels []string) {
 	// Listen for new messages
 	Client.OnNewMessage(handleMessage)
 
-	for _, channel := range channels {
-		fmt.Println("Joined:", strings.TrimSpace(channel))
-		Client.Join(channel)
-	}
+	// TODO: Everything about this is bad. Change it ASAP.
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		currentChannels := make(map[string]struct{})
+		for range ticker.C {
+			channels, err := s.ListChannel(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			for _, channel := range channels {
+				_, ok := currentChannels[string(channel)]
+				if !ok {
+					fmt.Println("Joined:", strings.TrimSpace(string(channel)))
+					Client.Join(string(channel))
+					currentChannels[string(channel)] = struct{}{}
+
+					var commands []*models.Command
+					db.Find(&commands)
+					for _, comm := range commands {
+						fmt.Println(comm.Channel)
+						if comm.Channel != string(channel) {
+							continue
+						}
+						fmt.Println("Added command", comm.Trigger)
+						s.NewCommand(context.Background(), string(channel), claudine_bot.Command{
+							Trigger: comm.Trigger,
+							Action: comm.Action,
+						})
+					}
+
+				}
+			}
+		}
+	}()
+
+	//for _, channel := range channels {
+	//	fmt.Println("Joined:", strings.TrimSpace(string(channel)))
+	//	Client.Join(string(channel))
+	//}
 
 	// Start the bot
 	if err := Client.Connect(); err != nil {

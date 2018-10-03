@@ -1,10 +1,7 @@
 package models
 
-import "github.com/jinzhu/gorm"
-
 type Command struct {
-	gorm.Model
-	Trigger string
+	Trigger string `gorm:"primary_key"`
 	Action  string
-	Channel string
+	Channel string `gorm:"primary_key"`
 }

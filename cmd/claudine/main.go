@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/go-kit/kit/log"
 	"github.com/jinzhu/gorm"
@@ -13,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 )
 
@@ -41,21 +39,12 @@ func main() {
 		s = claudine_bot.NewClaudineService(db)
 	}
 
-	var commands []*models.Command
-	db.Find(&commands)
-	for _, comm := range commands {
-		s.NewCommand(context.Background(), comm.Channel, claudine_bot.Command{
-			Trigger: comm.Trigger,
-			Action: comm.Action,
-		})
-	}
-
 	var h http.Handler
 	{
 		h = claudine_bot.MakeHTTPHandler(s, log.With(logger, "component", "HTTP"))
 	}
 
-	go bot.New(s, os.Getenv("USERNAME"), os.Getenv("TOKEN"), strings.Split(os.Getenv("CHANNELS"), ","))
+	go bot.New(s, os.Getenv("USERNAME"), os.Getenv("TOKEN"), db)
 
 	errs := make(chan error)
 	go func() {

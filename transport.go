@@ -23,37 +23,65 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		httptransport.ServerErrorLogger(logger),
 		httptransport.ServerErrorEncoder(encodeError),
 	}
-	r.Methods("POST").Path("/{channel}/commands").Handler(httptransport.NewServer(
+	// Channels
+	r.Methods("POST").Path("/channels").Handler(httptransport.NewServer(
+		e.NewChannelEndpoint,
+		decodeNewChannelRequest,
+		encodeResponse,
+		options...,
+	))
+	r.Methods("GET").Path("/channels").Handler(httptransport.NewServer(
+		e.ListChannelEndpoint,
+		decodeListChannelRequest,
+		encodeResponse,
+		options...,
+	))
+
+	// Commands
+	r.Methods("POST").Path("/channels/{channel}/commands").Handler(httptransport.NewServer(
 		e.NewCommandEndpoint,
 		decodeNewCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("GET").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/channels/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.GetCommandEndpoint,
 		decodeGetCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("GET").Path("/{channel}/commands").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/channels/{channel}/commands").Handler(httptransport.NewServer(
 		e.ListCommandEndpoint,
 		decodeListCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("PUT").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("PUT").Path("/channels/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.UpdateCommandEndpoint,
 		decodeUpdateCommandRequest,
 		encodeResponse,
 		options...,
 	))
-	r.Methods("DELETE").Path("/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
+	r.Methods("DELETE").Path("/channels/{channel}/commands/{trigger}").Handler(httptransport.NewServer(
 		e.DeleteCommandEndpoint,
 		decodeDeleteCommandEndpoint,
 		encodeResponse,
 		options...,
 	))
 	return r
+}
+
+func decodeNewChannelRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req newChannelRequest
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
+		return nil, e
+	}
+
+	return req, nil
+}
+
+func decodeListChannelRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	return listChannelRequest{}, nil
 }
 
 func decodeNewCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

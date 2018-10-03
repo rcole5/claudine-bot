@@ -6,6 +6,9 @@ import (
 )
 
 type Endpoints struct {
+	NewChannelEndpoint endpoint.Endpoint
+	ListChannelEndpoint endpoint.Endpoint
+
 	NewCommandEndpoint    endpoint.Endpoint
 	GetCommandEndpoint    endpoint.Endpoint
 	ListCommandEndpoint   endpoint.Endpoint
@@ -15,6 +18,9 @@ type Endpoints struct {
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
+		NewChannelEndpoint: MakeNewChannelEndpoint(s),
+		ListChannelEndpoint: MakeListChannelEndpoint(s),
+
 		NewCommandEndpoint:    MakeNewCommandEndpoint(s),
 		GetCommandEndpoint:    MakeGetCommandEndpoint(s),
 		ListCommandEndpoint:   MakeListCommandEndpoint(s),
@@ -73,6 +79,22 @@ func (e Endpoints) DeleteCommand(ctx context.Context, trigger string) error {
 	return resp.Error
 }
 
+func MakeNewChannelEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(newChannelRequest)
+		c, e := s.NewChannel(ctx, req.Channel)
+		return newChannelResponse{Channel: c, Error: e}, nil
+	}
+}
+
+func MakeListChannelEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		_ = request.(listChannelRequest)
+		c, e := s.ListChannel(ctx)
+		return listChannelResponse{Channels: c, Error: e}, nil
+	}
+}
+
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
@@ -119,9 +141,25 @@ type newCommandRequest struct {
 	Channel string
 }
 
+type newChannelRequest struct {
+	Channel string `json:"channel"`
+}
+
 type newCommandResponse struct {
 	Command Command `json:"command"`
 	Error   error   `json:"error"`
+}
+
+type newChannelResponse struct {
+	Channel Channel `json:"channel"`
+	Error   error   `json:"error"`
+}
+
+type listChannelRequest struct{}
+
+type listChannelResponse struct {
+	Channels []Channel `json:"channels"`
+	Error    error     `json:"error"`
 }
 
 func (r newCommandResponse) error() error { return r.Error }
