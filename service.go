@@ -183,6 +183,10 @@ func (s *claudineService) ListCommand(ctx context.Context, channel string) ([]Co
 
 	err := s.db.View(func(tx *bolt.Tx) error {
 		cBucket, err := GetActiveCommandBucket(tx, channel)
+		if err != nil {
+			return err
+		}
+
 		err = cBucket.ForEach(func(trigger, action []byte) error {
 			list = append(list, Command{
 				Trigger: string(trigger),

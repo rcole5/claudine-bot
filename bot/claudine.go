@@ -6,15 +6,18 @@ import (
 	"fmt"
 	bolt "github.com/etcd-io/bbolt"
 	"github.com/gempir/go-twitch-irc"
+	"github.com/nicklaw5/helix"
 	"github.com/rcole5/claudine-bot"
+	"os"
 	"strings"
 	"text/template"
 	"time"
 )
 
 var (
-	Client *twitch.Client
-	service claudine_bot.Service
+	Client      *twitch.Client
+	HelixClient *helix.Client
+	service     claudine_bot.Service
 )
 
 func New(s claudine_bot.Service, user string, token string, db *bolt.DB) {
@@ -23,6 +26,14 @@ func New(s claudine_bot.Service, user string, token string, db *bolt.DB) {
 
 	// Connect to twitch
 	Client = twitch.NewClient(user, token)
+
+	var err error
+	HelixClient, err = helix.NewClient(&helix.Options{
+		ClientID: os.Getenv("CLIENT_ID"),
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	// Listen for new messages
 	Client.OnNewMessage(handleMessage)
@@ -61,6 +72,25 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 		return
 	}
 
+	if msg[0] == "!uptime" {
+		users, err := HelixClient.GetStreams(&helix.StreamsParams{
+			UserLogins: []string{channel},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		if len(users.Data.Streams) == 0 {
+			Client.Say(channel, "User is not live")
+			return
+		}
+
+		duration := fmtDuration(time.Since(users.Data.Streams[0].StartedAt))
+
+		Client.Say(channel, channel + " has been live for " + duration)
+		return
+	}
+
 	if isMod(user) {
 		if msg[0] == "!add" {
 			if len(msg) < 3 {
@@ -69,7 +99,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 			}
 			_, err := service.NewCommand(context.Background(), channel, claudine_bot.Command{
 				Trigger: msg[1],
-				Action: strings.Join(msg[2:], " "),
+				Action:  strings.Join(msg[2:], " "),
 			})
 			if err != nil {
 				Client.Say(channel, "This command already exists.")
@@ -107,7 +137,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 
 		// Prepare the variables
 		vars := Variables{
-			User: user.Username,
+			User:   user.Username,
 			UserID: user.UserID,
 		}
 
@@ -119,10 +149,18 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 }
 
 type Variables struct {
-	User string
+	User   string
 	UserID int64
 }
 
 func isMod(user twitch.User) bool {
 	return user.Badges["broadcaster"] == 1 || user.Badges["moderator"] == 1
+}
+
+func fmtDuration(d time.Duration) string {
+	d = d.Round(time.Minute)
+	h := d / time.Hour
+	d -= h * time.Hour
+	m := d / time.Minute
+	return fmt.Sprintf("%2d Hour %02d Min", h, m)
 }
