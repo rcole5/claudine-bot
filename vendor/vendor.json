@@ -8,28 +8,34 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "6IOr+oZmMLyLnyIqCWcEE8E1CdA=",
+			"checksumSHA1": "wB5TUN74QbC+zU9u7KGnrlGN9ks=",
+			"path": "github.com/etcd-io/bbolt",
+			"revision": "7ee3ded59d4835e10f3e7d0f7603c42aa5e83820",
+			"revisionTime": "2018-09-12T20:56:54Z"
+		},
+		{
+			"checksumSHA1": "D6i1gJ9xpPrGO1vrflAb6I46CvY=",
 			"path": "github.com/gempir/go-twitch-irc",
-			"revision": "4d6cd828482ee46468feb78a057ad1396ad9d813",
-			"revisionTime": "2018-09-24T20:18:31Z"
+			"revision": "65648fd516245773c33d2a1c8f0251a81a0baf10",
+			"revisionTime": "2018-09-29T11:08:23Z"
 		},
 		{
 			"checksumSHA1": "oqtNI+0KmQ+eZgH5FArkETtOoHE=",
 			"path": "github.com/go-kit/kit/endpoint",
-			"revision": "9890679578cab201bd981519c97365519193d1ce",
-			"revisionTime": "2018-09-18T18:00:39Z"
+			"revision": "bd9859ee65bb1743c72811a5dca2a330a4e0d957",
+			"revisionTime": "2018-10-01T21:54:01Z"
 		},
 		{
 			"checksumSHA1": "bp1ClkjUs5pY6vpPF3ktUEFvII0=",
 			"path": "github.com/go-kit/kit/log",
-			"revision": "9890679578cab201bd981519c97365519193d1ce",
-			"revisionTime": "2018-09-18T18:00:39Z"
+			"revision": "bd9859ee65bb1743c72811a5dca2a330a4e0d957",
+			"revisionTime": "2018-10-01T21:54:01Z"
 		},
 		{
 			"checksumSHA1": "J8lSJ9VrQAiHclu9hvM4BzFb7KE=",
 			"path": "github.com/go-kit/kit/transport/http",
-			"revision": "9890679578cab201bd981519c97365519193d1ce",
-			"revisionTime": "2018-09-18T18:00:39Z"
+			"revision": "bd9859ee65bb1743c72811a5dca2a330a4e0d957",
+			"revisionTime": "2018-10-01T21:54:01Z"
 		},
 		{
 			"checksumSHA1": "KxX/Drph+byPXBFIXaCZaCOAnrU=",
@@ -44,22 +50,10 @@
 			"revisionTime": "2018-09-03T15:43:05Z"
 		},
 		{
-			"checksumSHA1": "saZ4MPgLuld/osSp8/tzrDYIXrY=",
-			"path": "github.com/jinzhu/gorm",
-			"revision": "f6260a00852946a10a57e8bb9f505f19bc9389b7",
-			"revisionTime": "2018-09-22T11:59:11Z"
-		},
-		{
 			"checksumSHA1": "4VZ1gLZHMumRjV3fclS1aX8S1aQ=",
 			"path": "github.com/jinzhu/gorm/dialects/sqlite",
 			"revision": "f6260a00852946a10a57e8bb9f505f19bc9389b7",
 			"revisionTime": "2018-09-22T11:59:11Z"
-		},
-		{
-			"checksumSHA1": "4eelJOSLZoDzLuaJvgilOBVNovU=",
-			"path": "github.com/jinzhu/inflection",
-			"revision": "04140366298a54a039076d798123ffa108fff46c",
-			"revisionTime": "2018-03-08T03:36:59Z"
 		},
 		{
 			"checksumSHA1": "I+g5iffd0bNDiI8swxzsHiJxBz0=",
@@ -72,6 +66,12 @@
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "0a88db3545c4089ce0f555f496bfc78c491699e5",
 			"revisionTime": "2018-09-26T09:02:20Z"
+		},
+		{
+			"checksumSHA1": "rEL6Z+R2saAWNv45gP6ZxoLgcEE=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "e4b3c5e9061176387e7cea65e4dc5853801f3fb7",
+			"revisionTime": "2018-09-28T10:55:38Z"
 		}
 	],
 	"rootPath": "github.com/rcole5/claudine-bot"

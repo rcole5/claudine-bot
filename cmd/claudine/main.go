@@ -4,7 +4,6 @@ import (
 	"fmt"
 	bolt "github.com/etcd-io/bbolt"
 	"github.com/go-kit/kit/log"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/rcole5/claudine-bot"
 	"github.com/rcole5/claudine-bot/bot"
