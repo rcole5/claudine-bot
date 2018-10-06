@@ -1,11 +1,17 @@
 package claudine_bot
 
 import (
+	"bytes"
 	"context"
 	"errors"
-	"github.com/jinzhu/gorm"
-	"github.com/rcole5/claudine-bot/models"
+	"fmt"
+	bolt "github.com/etcd-io/bbolt"
 	"sync"
+)
+
+var (
+	TRUE  = []byte{1}
+	FALSE = []byte{0}
 )
 
 type Service interface {
@@ -32,20 +38,16 @@ type Channel string
 var (
 	ErrAlreadyExist = errors.New("already exists")
 	ErrNotFound     = errors.New("not found")
-	//ErrGeneric       = errors.New("generic server error")
+	ErrGeneric      = errors.New("generic server error")
 )
 
 type claudineService struct {
 	mtx          sync.RWMutex
-	commands     map[string]map[string]Command
-	commandExist map[string]map[string]struct{}
-	db           *gorm.DB
+	db           *bolt.DB
 }
 
-func NewClaudineService(db *gorm.DB) Service {
+func NewClaudineService(db *bolt.DB) Service {
 	return &claudineService{
-		commands:     make(map[string]map[string]Command),
-		commandExist: make(map[string]map[string]struct{}),
 		db:           db,
 	}
 }
@@ -55,13 +57,25 @@ func (s *claudineService) NewChannel(ctx context.Context, channel string) (Chann
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	if _, ok := s.commands[channel]; ok {
-		return "", ErrAlreadyExist
-	}
+	// Create a channel bucket
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		//b := tx.Bucket([]byte(channel))
+		b, err := tx.CreateBucketIfNotExists([]byte(channel))
+		if err != nil {
+			return err
+		}
 
-	if s.commands[channel] == nil {
-		s.commands[channel] = make(map[string]Command)
-		s.commandExist[channel] = make(map[string]struct{})
+		// Create the command bucket
+		b.CreateBucketIfNotExists([]byte("commands"))
+
+		// Enable the channel
+		b.Put([]byte("enabled"), TRUE)
+
+		return nil
+	})
+
+	if err != nil {
+		return "", ErrAlreadyExist
 	}
 
 	return Channel(channel), nil
@@ -70,10 +84,21 @@ func (s *claudineService) NewChannel(ctx context.Context, channel string) (Chann
 func (s *claudineService) ListChannel(ctx context.Context) ([]Channel, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
+
 	var channels []Channel
-	for ch := range s.commands {
-		channels = append(channels, Channel(ch))
+	err := s.db.View(func(tx *bolt.Tx) error {
+		err := tx.ForEach(func(name []byte, b *bolt.Bucket) error {
+			if bytes.Compare(b.Get([]byte("enabled")), TRUE) == 0 {
+				channels = append(channels, Channel(name))
+			}
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return []Channel{}, err
 	}
+	fmt.Println(channels)
 	return channels, nil
 }
 
@@ -81,51 +106,73 @@ func (s *claudineService) DeleteChannel(ctx context.Context, channel string) err
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	_, ok := s.commands[channel]
-	if !ok {
-		return ErrNotFound
-	}
-	delete(s.commands, channel)
-	delete(s.commandExist, channel)
-	return nil
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(channel))
+		if b == nil {
+			return ErrNotFound
+		}
+
+		err := b.Put([]byte("enabled"), FALSE)
+
+		return err
+	})
+	return err
 }
 
 // Command Functions
 func (s *claudineService) NewCommand(ctx context.Context, channel string, c Command) (Command, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	if _, ok := s.commands[channel][c.Trigger]; ok {
-		return Command{}, ErrAlreadyExist
-	}
 
-	if s.commands[channel] == nil {
-		s.commands[channel] = make(map[string]Command)
-		s.commandExist[channel] = make(map[string]struct{})
-	}
-
-	go func() {
-		var existing models.Command
-		if s.db.Where("Channel = ? AND Trigger = ?", channel, c.Trigger).Find(&existing).RowsAffected == 0 {
-			s.db.Create(&models.Command{
-				Trigger: c.Trigger,
-				Action:  c.Action,
-				Channel: channel,
-			})
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		cBucket, err := GetActiveCommandBucket(tx, channel)
+		if err != nil {
+			return err
 		}
-	}()
 
-	s.commands[channel][c.Trigger] = c
-	s.commandExist[channel][c.Trigger] = struct{}{}
+		// Check if command exists
+		command := cBucket.Get([]byte(c.Action))
+		if command != nil {
+			return ErrAlreadyExist
+		}
+
+		// Create command
+		err = cBucket.Put([]byte(c.Trigger), []byte(c.Action))
+		return err
+	})
+	if err != nil {
+		return Command{}, err
+	}
+
 	return c, nil
 }
 
 func (s *claudineService) GetCommand(ctx context.Context, channel string, trigger string) (Command, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
-	c, ok := s.commands[channel][trigger]
-	if !ok {
-		return Command{}, ErrNotFound
+
+	c := Command{
+		Trigger: trigger,
 	}
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		cBucket, err := GetActiveCommandBucket(tx, channel)
+		if err != nil {
+			return err
+		}
+
+		response := cBucket.Get([]byte(trigger))
+		if response == nil {
+			return ErrNotFound
+		}
+
+		c.Action = string(response)
+		return nil
+	})
+	if err != nil {
+		return Command{}, err
+	}
+
 	return c, nil
 }
 
@@ -133,9 +180,22 @@ func (s *claudineService) ListCommand(ctx context.Context, channel string) ([]Co
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 	var list []Command
-	for _, command := range s.commands[channel] {
-		list = append(list, command)
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		cBucket, err := GetActiveCommandBucket(tx, channel)
+		err = cBucket.ForEach(func(trigger, action []byte) error {
+			list = append(list, Command{
+				Trigger: string(trigger),
+				Action:  string(action),
+			})
+			return nil
+		})
+		return err
+	})
+	if err != nil {
+		return []Command{}, err
 	}
+
 	return list, nil
 }
 
@@ -143,28 +203,73 @@ func (s *claudineService) UpdateCommand(ctx context.Context, channel string, tri
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	_, ok := s.commands[channel][trigger]
-	if !ok {
-		return Command{}, ErrNotFound
-
-	}
-	s.commands[channel][trigger] = Command{
+	c := Command{
 		Trigger: trigger,
-		Action:  action,
 	}
 
-	return s.commands[channel][trigger], nil
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		cBucket, err := GetActiveCommandBucket(tx, channel)
+		if err != nil {
+			return err
+		}
+
+		response := cBucket.Get([]byte(trigger))
+		if response == nil {
+			return ErrNotFound
+		}
+
+		err = cBucket.Put([]byte(trigger), []byte(action))
+		if err != nil {
+			return ErrGeneric
+		}
+
+		c.Action = action
+		return nil
+	})
+	if err != nil {
+		return Command{}, err
+	}
+
+	return c, nil
 }
 
 func (s *claudineService) DeleteCommand(ctx context.Context, channel string, trigger string) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	_, ok := s.commands[channel][trigger]
-	if !ok {
-		return ErrNotFound
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		cBucket, err := GetActiveCommandBucket(tx, channel)
+
+		response := cBucket.Get([]byte(trigger))
+		if response == nil {
+			return ErrNotFound
+		}
+
+		err = cBucket.Delete([]byte(trigger))
+		if err != nil {
+			return ErrGeneric
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func GetActiveCommandBucket(tx *bolt.Tx, channel string) (*bolt.Bucket, error) {
+	// Get the channel bucket
+	bucket := tx.Bucket([]byte(channel))
+	if bucket == nil {
+		return &bolt.Bucket{}, ErrNotFound
 	}
-	delete(s.commands[channel], trigger)
-	delete(s.commandExist[channel], trigger)
-	return nil
+
+	// Check if account is active
+	active := bucket.Get([]byte("enabled"))
+	if bytes.Compare(active, TRUE) != 0 {
+		return &bolt.Bucket{}, ErrNotFound
+	}
+
+	// Get the commands bucket
+	cBucket := bucket.Bucket([]byte("commands"))
+	return cBucket, nil
 }

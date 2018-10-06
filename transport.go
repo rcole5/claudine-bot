@@ -36,6 +36,12 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		encodeResponse,
 		options...,
 	))
+	r.Methods("DELETE").Path("/channels/{channel}").Handler(httptransport.NewServer(
+		e.DeleteChannelEndpoint,
+		decodeDeleteChannelRequest,
+		encodeResponse,
+		options...,
+	))
 
 	// Commands
 	r.Methods("POST").Path("/channels/{channel}/commands").Handler(httptransport.NewServer(
@@ -82,6 +88,14 @@ func decodeNewChannelRequest(_ context.Context, r *http.Request) (request interf
 
 func decodeListChannelRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
 	return listChannelRequest{}, nil
+}
+
+func decodeDeleteChannelRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	return deleteChannelRequest{Channel: Channel(channel)}, nil
 }
 
 func decodeNewCommandRequest(_ context.Context, r *http.Request) (request interface{}, err error) {

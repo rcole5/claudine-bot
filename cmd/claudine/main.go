@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
+	bolt "github.com/etcd-io/bbolt"
 	"github.com/go-kit/kit/log"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/joho/godotenv"
 	"github.com/rcole5/claudine-bot"
 	"github.com/rcole5/claudine-bot/bot"
-	"github.com/rcole5/claudine-bot/models"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,13 +25,12 @@ func main() {
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	db, err := gorm.Open("sqlite3", "commands.db")
+	// Open up the db
+	db, err := bolt.Open("my2.db", 0600, nil)
 	if err != nil {
 		panic(err)
 	}
-
-	// Migrate the db
-	db.AutoMigrate(&models.Command{})
+	defer db.Close()
 
 	var s claudine_bot.Service
 	{
