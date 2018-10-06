@@ -6,8 +6,9 @@ import (
 )
 
 type Endpoints struct {
-	NewChannelEndpoint endpoint.Endpoint
-	ListChannelEndpoint endpoint.Endpoint
+	NewChannelEndpoint    endpoint.Endpoint
+	ListChannelEndpoint   endpoint.Endpoint
+	DeleteChannelEndpoint endpoint.Endpoint
 
 	NewCommandEndpoint    endpoint.Endpoint
 	GetCommandEndpoint    endpoint.Endpoint
@@ -18,8 +19,9 @@ type Endpoints struct {
 
 func MakeServerEndpoints(s Service) Endpoints {
 	return Endpoints{
-		NewChannelEndpoint: MakeNewChannelEndpoint(s),
-		ListChannelEndpoint: MakeListChannelEndpoint(s),
+		NewChannelEndpoint:    MakeNewChannelEndpoint(s),
+		ListChannelEndpoint:   MakeListChannelEndpoint(s),
+		DeleteChannelEndpoint: MakeDeleteChannelEndpoint(s),
 
 		NewCommandEndpoint:    MakeNewCommandEndpoint(s),
 		GetCommandEndpoint:    MakeGetCommandEndpoint(s),
@@ -95,6 +97,14 @@ func MakeListChannelEndpoint(s Service) endpoint.Endpoint {
 	}
 }
 
+func MakeDeleteChannelEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		c := request.(deleteChannelRequest)
+		e := s.DeleteChannel(ctx, string(c.Channel))
+		return deleteChannelResponse{Error: e}, nil
+	}
+}
+
 func MakeNewCommandEndpoint(s Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(newCommandRequest)
@@ -160,6 +170,14 @@ type listChannelRequest struct{}
 type listChannelResponse struct {
 	Channels []Channel `json:"channels"`
 	Error    error     `json:"error"`
+}
+
+type deleteChannelRequest struct {
+	Channel Channel `json:"channel"`
+}
+
+type deleteChannelResponse struct {
+	Error error `json:"error"`
 }
 
 func (r newCommandResponse) error() error { return r.Error }
