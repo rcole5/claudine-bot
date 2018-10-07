@@ -8,6 +8,13 @@
 Then run:
 ```
 govendor install +local
-claudine-bot
+claudine
 ```
 and the bot should be running.
+
+## TODO
+- [ ] Authentication
+- [ ] Frontend dashboard
+- [ ] Song request
+- [ ] Prefixless commands
+- [ ] Command cooldowns
