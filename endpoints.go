@@ -15,6 +15,11 @@ type Endpoints struct {
 	ListCommandEndpoint   endpoint.Endpoint
 	UpdateCommandEndpoint endpoint.Endpoint
 	DeleteCommandEndpoint endpoint.Endpoint
+
+	NewRepeatEndpoint    endpoint.Endpoint
+	GetRepeatEndpoint    endpoint.Endpoint
+	ListRepeatEndpoint   endpoint.Endpoint
+	DeleteRepeatEndpoint endpoint.Endpoint
 }
 
 func MakeServerEndpoints(s Service) Endpoints {
@@ -28,6 +33,11 @@ func MakeServerEndpoints(s Service) Endpoints {
 		ListCommandEndpoint:   MakeListCommandEndpoint(s),
 		UpdateCommandEndpoint: MakeUpdateCommandEndpoint(s),
 		DeleteCommandEndpoint: MakeDeleteCommandEndpoint(s),
+
+		NewRepeatEndpoint:  MakeNewRepeatEndpoint(s),
+		GetRepeatEndpoint:  MakeGetRepeatEndpoint(s),
+		ListRepeatEndpoint: MakeListRepeatEndpoint(s),
+		DeleteRepeatEndpoint: MakeDeleteRepeatEndpoint(s),
 	}
 }
 
@@ -145,6 +155,38 @@ func MakeDeleteCommandEndpoint(s Service) endpoint.Endpoint {
 	}
 }
 
+func MakeNewRepeatEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(newRepeatRequest)
+		resp, e := s.NewRepeatCommand(ctx, req.Channel, req.Trigger, req.Duration)
+		return newRepeatCommandResponse{RepeatCommand: resp, Error: e}, nil
+	}
+}
+
+func MakeGetRepeatEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(getRepeatRequest)
+		resp, e := s.GetRepeatCommand(ctx, req.Channel, req.Trigger)
+		return getRepeatCommandResponse{RepeatCommand: resp, Error: e}, nil
+	}
+}
+
+func MakeListRepeatEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(listRepeatRequest)
+		resp, e := s.ListRepeatCommand(ctx, req.Channel)
+		return listRepeatResponse{RepeatCommands: resp, Error: e}, nil
+	}
+}
+
+func MakeDeleteRepeatEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(deleteRepeatRequest)
+		e := s.DeleteRepeatCommand(ctx, req.Channel, req.Trigger)
+		return deleteRepeatResponse{Error: e}, nil
+	}
+}
+
 // New Command
 type newCommandRequest struct {
 	Command Command
@@ -219,6 +261,45 @@ type deleteCommandRequest struct {
 }
 
 type deleteCommandResponse struct {
+	Error error `json:"error"`
+}
+
+type getRepeatRequest struct {
+	Channel string `json:"channel"`
+	Trigger string `json:"trigger"`
+}
+
+type deleteRepeatRequest struct {
+	Channel string `json:"channel"`
+	Trigger string `json:"trigger"`
+}
+
+type getRepeatCommandResponse struct {
+	RepeatCommand RepeatCommand `json:"repeat_command"`
+	Error         error         `json:"error"`
+}
+
+type newRepeatRequest struct {
+	Channel  string `json:"channel"`
+	Trigger  string `json:"trigger"`
+	Duration int    `json:"duration"`
+}
+
+type newRepeatCommandResponse struct {
+	RepeatCommand RepeatCommand `json:"repeat_command"`
+	Error         error         `json:"error"`
+}
+
+type listRepeatRequest struct {
+	Channel string `json:"channel"`
+}
+
+type listRepeatResponse struct {
+	RepeatCommands []RepeatCommand `json:"repeat_commands"`
+	Error          error           `json:"error"`
+}
+
+type deleteRepeatResponse struct {
 	Error error `json:"error"`
 }
 

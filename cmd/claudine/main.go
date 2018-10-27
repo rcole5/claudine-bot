@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// Open up the db
-	db, err := bolt.Open("my2.db", 0600, nil)
+	db, err := bolt.Open("claudine-commands.db", 0600, nil)
 	if err != nil {
 		panic(err)
 	}

@@ -7,8 +7,10 @@ import (
 	bolt "github.com/etcd-io/bbolt"
 	"github.com/gempir/go-twitch-irc"
 	"github.com/nicklaw5/helix"
+	"github.com/pkg/errors"
 	"github.com/rcole5/claudine-bot"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -58,6 +60,35 @@ func New(s claudine_bot.Service, user string, token string, db *bolt.DB) {
 		}
 	}()
 
+	// Check repeat commands
+	repeatTicker := time.NewTicker(1 * time.Minute)
+	go func() {
+		for range repeatTicker.C {
+			channels, err := s.ListChannel(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			for _, channel := range channels {
+				repeatCommands, err := s.ListRepeatCommand(context.Background(), string(channel))
+				if err != nil {
+					continue
+				}
+				
+				for _, repeatCommand := range repeatCommands {
+					if time.Now().Minute() % repeatCommand.Duration == 0 {
+						command, err := s.GetCommand(context.Background(), string(channel), repeatCommand.Trigger)
+						if err != nil {
+							continue
+						}
+
+						response, err := GetCommandString(command, twitch.User{})
+						Client.Say(string(channel), response)
+					}
+				}
+			}
+		}
+	}()
+
 	// Start the bot
 	if err := Client.Connect(); err != nil {
 		panic(err)
@@ -68,7 +99,6 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 	fmt.Printf("%s@%s: %s\n", user.DisplayName, channel, message.Text)
 	msg := strings.Split(message.Text, " ")
 	if msg[0][0] != '!' {
-		fmt.Println("Not a command")
 		return
 	}
 
@@ -119,6 +149,19 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 			}
 			Client.Say(channel, "Command deleted.")
 			return
+		} else if msg[0] == "!repeat" {
+			if len(msg) < 3 {
+				Client.Say(channel, "Not enough args. Syntax is !repeat <command> <minutes>.")
+				return
+			}
+			intDuration, _ := strconv.Atoi(msg[2])
+			_, err := service.NewRepeatCommand(context.Background(), channel, msg[1], intDuration)
+			if err != nil {
+				Client.Say(channel, "Error creating repeat command")
+				return
+			}
+			Client.Say(channel, "Command repeated.")
+			return
 		}
 	}
 	command, err := service.GetCommand(context.Background(), channel, msg[0][1:])
@@ -127,25 +170,33 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 	}
 
 	if command.Trigger != "" {
-		// Parse any variables
-		t, err := template.New("Parse Command").Parse(command.Action)
+		response, err := GetCommandString(command, user)
 		if err != nil {
-			fmt.Println(err)
-			Client.Say(channel, "Failed to parse command")
+			Client.Say(channel, err.Error())
 			return
 		}
 
-		// Prepare the variables
-		vars := Variables{
-			User:   user.Username,
-			UserID: user.UserID,
-		}
-
-		buf := new(bytes.Buffer)
-		t.Execute(buf, vars)
-
-		Client.Say(channel, buf.String())
+		Client.Say(channel, response)
 	}
+}
+
+func GetCommandString(command claudine_bot.Command, user twitch.User) (string, error) {
+	// Parse any variables
+	t, err := template.New("Parse Command").Parse(command.Action)
+	if err != nil {
+		return "", errors.New("Failed to parse command")
+	}
+
+	// Prepare the variables
+	vars := Variables{
+		User:   user.Username,
+		UserID: user.UserID,
+	}
+
+	buf := new(bytes.Buffer)
+	t.Execute(buf, vars)
+
+	return buf.String(), nil
 }
 
 type Variables struct {

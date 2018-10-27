@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	bolt "github.com/etcd-io/bbolt"
+	"strconv"
 	"sync"
 )
 
@@ -26,11 +26,21 @@ type Service interface {
 	ListCommand(ctx context.Context, channel string) ([]Command, error)
 	UpdateCommand(ctx context.Context, channel string, trigger string, action string) (Command, error)
 	DeleteCommand(ctx context.Context, channel string, trigger string) error
+
+	NewRepeatCommand(ctx context.Context, channel string, trigger string, duration int) (RepeatCommand, error)
+	GetRepeatCommand(ctx context.Context, channel string, trigger string) (RepeatCommand, error)
+	ListRepeatCommand(ctx context.Context, channel string) ([]RepeatCommand, error)
+	DeleteRepeatCommand(ctx context.Context, channel string, trigger string) error
 }
 
 type Command struct {
 	Trigger string `json:"trigger"`
 	Action  string `json:"action"`
+}
+
+type RepeatCommand struct {
+	Trigger  string `json:"trigger"`
+	Duration int    `json:"duration"`
 }
 
 type Channel string
@@ -98,7 +108,6 @@ func (s *claudineService) ListChannel(ctx context.Context) ([]Channel, error) {
 	if err != nil {
 		return []Channel{}, err
 	}
-	fmt.Println(channels)
 	return channels, nil
 }
 
@@ -258,6 +267,136 @@ func (s *claudineService) DeleteCommand(ctx context.Context, channel string, tri
 	})
 
 	return err
+}
+
+func (s *claudineService) NewRepeatCommand(ctx context.Context, channel string, trigger string, duration int) (RepeatCommand, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		rBucket, err := tx.CreateBucketIfNotExists([]byte("repeat"))
+		if err != nil {
+			return err
+		}
+
+		// TODO: Check if channel is active
+		bucket, err := rBucket.CreateBucketIfNotExists([]byte(channel))
+		if err != nil {
+			return err
+		}
+
+		exist := bucket.Get([]byte(trigger))
+		if exist != nil {
+			return ErrAlreadyExist
+		}
+
+		bucket.Put([]byte(trigger), []byte(strconv.Itoa(duration)))
+		return err
+	})
+
+	if err != nil {
+		return RepeatCommand{}, err
+	}
+
+	command := RepeatCommand{
+		Trigger: trigger,
+		Duration:duration,
+	}
+
+	return command, nil
+}
+
+func (s *claudineService) GetRepeatCommand(ctx context.Context, channel string, trigger string) (RepeatCommand, error) {
+	command := RepeatCommand{
+		Trigger: trigger,
+	}
+
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		rBucket := tx.Bucket([]byte("repeat"))
+		if rBucket == nil {
+			return ErrNotFound
+		}
+
+		cBucket := rBucket.Bucket([]byte(channel))
+		if cBucket == nil {
+			return ErrNotFound
+		}
+
+		duration := cBucket.Get([]byte(trigger))
+		if duration == nil {
+			return ErrNotFound
+		}
+
+		intDuration, err := strconv.Atoi(string(duration))
+		if err != nil {
+			return err
+		}
+		command.Duration = intDuration
+
+		// TODO: Check if channel is active
+		return err
+	})
+	if err != nil {
+		return RepeatCommand{}, err
+	}
+
+	return command, err
+}
+
+func (s *claudineService) ListRepeatCommand(ctx context.Context, channel string) ([]RepeatCommand, error) {
+	var list []RepeatCommand
+
+	err := s.db.View(func(tx *bolt.Tx) error {
+		rBucket := tx.Bucket([]byte("repeat"))
+		if rBucket == nil {
+			return ErrNotFound
+		}
+
+		cBucket := rBucket.Bucket([]byte(channel))
+		if cBucket == nil {
+			return ErrNotFound
+		}
+
+
+		err := cBucket.ForEach(func(trigger, duration []byte) error {
+			intDuration, err := strconv.Atoi(string(duration))
+			if err != nil {
+				return err
+			}
+			list = append(list, RepeatCommand{
+				Trigger: string(trigger),
+				Duration:  intDuration,
+			})
+			return  nil
+		})
+
+		return err
+	})
+	if err != nil {
+		return []RepeatCommand{}, err
+	}
+
+	return list, nil
+}
+
+func (s *claudineService) DeleteRepeatCommand(ctx context.Context, channel string, trigger string) error {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		rBucket := tx.Bucket([]byte("repeat"))
+		if rBucket == nil {
+			return ErrNotFound
+		}
+
+		cBucket := rBucket.Bucket([]byte(channel))
+		if cBucket == nil {
+			return ErrNotFound
+		}
+
+		err := cBucket.Delete([]byte(trigger))
+
+		return err
+	})
+	return  err
 }
 
 func GetActiveCommandBucket(tx *bolt.Tx, channel string) (*bolt.Bucket, error) {

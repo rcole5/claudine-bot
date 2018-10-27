@@ -74,7 +74,96 @@ func MakeHTTPHandler(s Service, logger log.Logger) http.Handler {
 		encodeResponse,
 		options...,
 	))
+
+	// Repeat
+	r.Methods("GET").Path("/channels/{channel}/repeat").Handler(httptransport.NewServer(
+		e.ListRepeatEndpoint,
+		decodeListRepeatRequest,
+		encodeResponse,
+		options...,
+	))
+	r.Methods("GET").Path("/channels/{channel}/repeat/{trigger}").Handler(httptransport.NewServer(
+		e.GetRepeatEndpoint,
+		decodeGetRepeatRequest,
+		encodeResponse,
+		options...,
+	))
+	r.Methods("POST").Path("/channels/{channel}/repeat").Handler(httptransport.NewServer(
+		e.NewRepeatEndpoint,
+		decodeNewRepeatRequest,
+		encodeResponse,
+		options...,
+	))
+	r.Methods("DELETE").Path("/channels/{channel}/repeat/{trigger}").Handler(httptransport.NewServer(
+		e.DeleteRepeatEndpoint,
+		decodeDeleteRepeatRequest,
+		encodeResponse,
+		options...,
+	))
+
 	return r
+}
+
+func decodeNewRepeatRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	var req newRepeatRequest
+	if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
+		return nil, e
+	}
+
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+	req.Channel = channel
+	return req, nil
+}
+
+func decodeGetRepeatRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	trigger, ok := mux.Vars(r)["trigger"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	req := getRepeatRequest{
+		Channel: channel,
+		Trigger: trigger,
+	}
+	return req, nil
+}
+
+func decodeListRepeatRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	req := listRepeatRequest{
+		Channel: channel,
+	}
+	return req, nil
+}
+
+func decodeDeleteRepeatRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
+	channel, ok := mux.Vars(r)["channel"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	trigger, ok := mux.Vars(r)["trigger"]
+	if !ok {
+		return nil, ErrBadRouting
+	}
+
+	req := deleteRepeatRequest{
+		Channel: channel,
+		Trigger: trigger,
+	}
+	return req, nil
 }
 
 func decodeNewChannelRequest(_ context.Context, r *http.Request) (request interface{}, err error) {
