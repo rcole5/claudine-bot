@@ -69,6 +69,10 @@ func New(s claudine_bot.Service, user string, token string, db *bolt.DB) {
 				panic(err)
 			}
 			for _, channel := range channels {
+				if !isUserLive(string(channel)) {
+					continue
+				}
+
 				repeatCommands, err := s.ListRepeatCommand(context.Background(), string(channel))
 				if err != nil {
 					continue
@@ -178,6 +182,18 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 
 		Client.Say(channel, response)
 	}
+}
+
+func isUserLive(channel string) bool {
+	users, err := HelixClient.GetStreams(&helix.StreamsParams{
+		UserLogins: []string{string(channel)},
+	})
+	if err != nil {
+		return false
+	}
+
+	// User is not live
+	return len(users.Data.Streams) == 0
 }
 
 func GetCommandString(command claudine_bot.Command, user twitch.User) (string, error) {
