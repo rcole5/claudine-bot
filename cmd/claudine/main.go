@@ -4,6 +4,7 @@ import (
 	"fmt"
 	bolt "github.com/etcd-io/bbolt"
 	"github.com/go-kit/kit/log"
+	"github.com/gorilla/handlers"
 	"github.com/joho/godotenv"
 	"github.com/rcole5/claudine-bot"
 	"github.com/rcole5/claudine-bot/bot"
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// Open up the db
-	db, err := bolt.Open("claudine-commands.db", 0600, nil)
+	db, err := bolt.Open("claudine-commands.db", 0777, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -51,8 +52,12 @@ func main() {
 	}()
 
 	go func() {
+		headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"})
+		originsOk := handlers.AllowedOrigins([]string{"*"})
+		methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "PUT"})
+
 		logger.Log("transport", "HTTP", "addr", ":"+os.Getenv("PORT"))
-		errs <- http.ListenAndServe(":"+os.Getenv("PORT"), h)
+		errs <- http.ListenAndServe(":"+os.Getenv("PORT"), handlers.CORS(headersOk, originsOk, methodsOk)(h))
 	}()
 
 	logger.Log("exit", <-errs)

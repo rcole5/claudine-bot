@@ -68,13 +68,13 @@
 			"revisionTime": "2018-09-26T09:02:20Z"
 		},
 		{
-			"checksumSHA1": "CZJiqpPKxBHglcXYI6maVee7B9U=",
+			"checksumSHA1": "yAGuJjtX1vetc3l2ClhqXljHgAg=",
 			"path": "github.com/nicklaw5/helix",
 			"revision": "a842e5f374ed54ff1e8d8377a6634232d74f339f",
 			"revisionTime": "2018-08-24T23:06:51Z"
 		},
 		{
-			"checksumSHA1": "rEL6Z+R2saAWNv45gP6ZxoLgcEE=",
+			"checksumSHA1": "VDNO7IDwtrKUlC6JGmdEriwnz3Y=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "e4b3c5e9061176387e7cea65e4dc5853801f3fb7",
 			"revisionTime": "2018-09-28T10:55:38Z"
