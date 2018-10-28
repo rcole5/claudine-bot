@@ -69,7 +69,7 @@ func New(s claudine_bot.Service, user string, token string, db *bolt.DB) {
 				panic(err)
 			}
 			for _, channel := range channels {
-				if !isUserLive(string(channel)) {
+				if !isChannelLive(string(channel)) {
 					continue
 				}
 
@@ -184,7 +184,7 @@ func handleMessage(channel string, user twitch.User, message twitch.Message) {
 	}
 }
 
-func isUserLive(channel string) bool {
+func isChannelLive(channel string) bool {
 	users, err := HelixClient.GetStreams(&helix.StreamsParams{
 		UserLogins: []string{string(channel)},
 	})
@@ -193,7 +193,7 @@ func isUserLive(channel string) bool {
 	}
 
 	// User is not live
-	return len(users.Data.Streams) == 0
+	return len(users.Data.Streams) != 0
 }
 
 func GetCommandString(command claudine_bot.Command, user twitch.User) (string, error) {
