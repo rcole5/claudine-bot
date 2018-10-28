@@ -229,5 +229,5 @@ func fmtDuration(d time.Duration) string {
 	h := d / time.Hour
 	d -= h * time.Hour
 	m := d / time.Minute
-	return fmt.Sprintf("%2d:%02d", h, m)
+	return fmt.Sprintf("%02d:%02d", h, m)
 }
